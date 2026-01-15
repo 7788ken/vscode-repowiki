@@ -57,7 +57,7 @@ export class DocGenerator {
     this.log('✓ 已初始化 repowiki 目录结构');
   }
 
-  private async callAgent(docPath: string, title: string, isUpdate: boolean): Promise<void> {
+  private async callAgent(docPath: string, title: string, sourceFiles: string[], isUpdate: boolean): Promise<void> {
     const agent = this.agentManager.getActiveAgent();
     
     if (!agent) {
@@ -65,11 +65,14 @@ export class DocGenerator {
     }
 
     this.log(`使用 ${agent.name} 生成文档`);
+    if (sourceFiles.length > 0) {
+      this.log(`  源文件: ${sourceFiles.join(', ')}`);
+    }
 
     const params: AgentCallParams = {
       docPath,
       title,
-      sourceFiles: [],
+      sourceFiles,
       workspaceRoot: this.workspaceRoot,
       isUpdate,
     };
@@ -98,7 +101,7 @@ export class DocGenerator {
     await fs.mkdir(docDir, { recursive: true });
 
     const isUpdate = metadata.status === DocStatus.OUTDATED;
-    await this.callAgent(metadata.docPath, metadata.title, isUpdate);
+    await this.callAgent(metadata.docPath, metadata.title, metadata.sourceFiles, isUpdate);
     
     this.log(`✓ 完成: ${metadata.title}`);
   }
