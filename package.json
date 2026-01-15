@@ -1,0 +1,130 @@
+{
+  "name": "vscode-repowiki",
+  "displayName": "RepoWiki",
+  "description": "在资源管理器侧边栏中管理和浏览工作区的 Markdown 文档",
+  "version": "0.0.1",
+  "publisher": "repowiki",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "repowiki-container",
+          "title": "RepoWiki",
+          "icon": "$(book)"
+        }
+      ]
+    },
+    "views": {
+      "repowiki-container": [
+        {
+          "id": "repowiki.markdownExplorer",
+          "name": "Markdown 文档",
+          "icon": "$(markdown)",
+          "contextualTitle": "RepoWiki"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "repowiki.refresh",
+        "title": "刷新文档列表",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "repowiki.createGroup",
+        "title": "新建分组",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "repowiki.deleteGroup",
+        "title": "删除分组",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "repowiki.renameGroup",
+        "title": "重命名分组"
+      },
+      {
+        "command": "repowiki.moveToGroup",
+        "title": "移动到分组"
+      },
+      {
+        "command": "repowiki.openFile",
+        "title": "打开文件"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "repowiki.refresh",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "repowiki.createGroup",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "repowiki.deleteGroup",
+          "when": "view == repowiki.markdownExplorer && viewItem == group",
+          "group": "inline"
+        },
+        {
+          "command": "repowiki.renameGroup",
+          "when": "view == repowiki.markdownExplorer && viewItem == group"
+        },
+        {
+          "command": "repowiki.moveToGroup",
+          "when": "view == repowiki.markdownExplorer && viewItem == file"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "RepoWiki",
+      "properties": {
+        "repowiki.groups": {
+          "type": "object",
+          "default": {},
+          "description": "文档分组配置，键为分组名，值为文件路径数组"
+        },
+        "repowiki.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**"
+          ],
+          "description": "排除的文件匹配模式"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "esbuild": "^0.19.8",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  }
+}
