@@ -26,8 +26,10 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
   getTreeItem(element: TreeNodeData): vscode.TreeItem {
     if (element.type === 'group') {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
-      item.contextValue = 'group';
-      item.iconPath = new vscode.ThemeIcon('folder');
+      // 根据分组类型设置不同的 contextValue
+      item.contextValue = element.isPhysical ? 'physicalGroup' : 'virtualGroup';
+      item.iconPath = new vscode.ThemeIcon(element.isPhysical ? 'folder' : 'folder-library');
+      item.tooltip = element.isPhysical ? `物理目录: ${element.directoryPath}` : '虚拟分组';
       return item;
     }
 
@@ -56,45 +58,65 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
 
     // 分组节点：返回该分组下的文件
     if (element.type === 'group' && element.groupName) {
-      return this.getFileNodes(element.groupName);
+      return this.getFileNodes(element.groupName, element.isPhysical || false, element.directoryPath);
     }
 
     return [];
   }
 
-  /** 获取所有分组节点 */
+  /** 获取所有分组节点（物理+虚拟） */
   private async getGroupNodes(): Promise<TreeNodeData[]> {
     const files = await this.scanMarkdownFiles();
-    const groupNames = new Set<string>();
+    const nodes: TreeNodeData[] = [];
 
-    // 收集所有使用中的分组名
-    for (const file of files) {
-      groupNames.add(file.groupName);
+    // 1. 物理分组（目录）
+    const physicalGroups = await this.groupManager.getPhysicalGroups(files);
+    for (const [dirPath, displayName] of physicalGroups.entries()) {
+      nodes.push({
+        type: 'group' as const,
+        label: displayName,
+        groupName: displayName,
+        isPhysical: true,
+        directoryPath: dirPath,
+      });
     }
 
-    // 添加用户创建的空分组
-    const configGroups = this.groupManager.getAllGroupNames();
-    for (const name of configGroups) {
-      groupNames.add(name);
+    // 2. 虚拟分组
+    const virtualGroups = this.groupManager.getAllVirtualGroupNames();
+    for (const name of virtualGroups) {
+      nodes.push({
+        type: 'group' as const,
+        label: name,
+        groupName: name,
+        isPhysical: false,
+      });
     }
 
-    // 确保"未分类"在最后
-    const sorted = Array.from(groupNames).filter((n) => n !== GroupManager.DEFAULT_GROUP);
-    sorted.sort();
-    sorted.push(GroupManager.DEFAULT_GROUP);
+    // 排序：物理分组在前，虚拟分组在后
+    nodes.sort((a, b) => {
+      if (a.isPhysical === b.isPhysical) {
+        return a.label.localeCompare(b.label);
+      }
+      return a.isPhysical ? -1 : 1;
+    });
 
-    return sorted.map((name) => ({
-      type: 'group' as const,
-      label: name,
-      groupName: name,
-    }));
+    return nodes;
   }
 
   /** 获取指定分组下的文件节点 */
-  private async getFileNodes(groupName: string): Promise<TreeNodeData[]> {
+  private async getFileNodes(groupName: string, isPhysical: boolean, directoryPath?: string): Promise<TreeNodeData[]> {
     const files = await this.scanMarkdownFiles();
+    
     return files
-      .filter((f) => f.groupName === groupName)
+      .filter((f) => {
+        if (isPhysical && directoryPath !== undefined) {
+          // 物理分组：只显示该目录下且未被虚拟分组占用的文件
+          return f.directory === directoryPath && f.isPhysical;
+        } else {
+          // 虚拟分组：显示分配到该虚拟分组的文件
+          return !f.isPhysical && f.groupName === groupName;
+        }
+      })
       .map((f) => ({
         type: 'file' as const,
         label: f.name,
@@ -121,13 +143,18 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
     return uris.map((uri) => {
       const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
       const name = path.basename(uri.fsPath);
-      const groupName = this.groupManager.getFileGroup(relativePath);
+      const directory = path.dirname(relativePath);
+      
+      // 获取文件所属分组
+      const { groupName, isPhysical } = this.groupManager.getFileGroup(relativePath);
 
       return {
         name,
         absolutePath: uri.fsPath,
         relativePath,
         groupName,
+        directory,
+        isPhysical,
       };
     });
   }

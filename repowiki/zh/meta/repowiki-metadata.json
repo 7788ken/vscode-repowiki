@@ -1,0 +1,121 @@
+{
+  "knowledge_relations": [
+    {
+      "source_id": "index",
+      "target_id": "system-overview",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "tech-stack",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "structure",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "config-commands",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "build-dev",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "troubleshooting",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "core-entry",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "core-tree-group",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "core-file-watcher",
+      "relationship_type": "PARENT_CHILD"
+    }
+  ],
+  "wiki_catalogs": [
+    {
+      "id": "index",
+      "name": "索引",
+      "description": "Wiki 索引与导航",
+      "progress_status": "completed",
+      "dependent_files": "repowiki/skill.md"
+    },
+    {
+      "id": "system-overview",
+      "name": "系统概述",
+      "description": "扩展定位与运行时概览",
+      "progress_status": "completed",
+      "dependent_files": "README.md,package.json,src/extension.ts"
+    },
+    {
+      "id": "tech-stack",
+      "name": "技术栈与依赖",
+      "description": "技术选型与构建依赖",
+      "progress_status": "completed",
+      "dependent_files": "package.json,esbuild.js,README.md"
+    },
+    {
+      "id": "structure",
+      "name": "目录结构详解",
+      "description": "目录结构与文件职责",
+      "progress_status": "completed",
+      "dependent_files": "README.md,package.json,esbuild.js,src/extension.ts,src/markdownTreeProvider.ts,src/groupManager.ts,src/fileWatcher.ts,src/types.ts"
+    },
+    {
+      "id": "config-commands",
+      "name": "配置与命令",
+      "description": "配置项、命令与视图信息",
+      "progress_status": "completed",
+      "dependent_files": "package.json,README.md"
+    },
+    {
+      "id": "build-dev",
+      "name": "构建与开发",
+      "description": "构建、调试与打包流程",
+      "progress_status": "completed",
+      "dependent_files": "README.md,package.json,esbuild.js"
+    },
+    {
+      "id": "troubleshooting",
+      "name": "故障排除",
+      "description": "常见问题定位与处理",
+      "progress_status": "completed",
+      "dependent_files": "README.md,package.json,src/extension.ts,src/markdownTreeProvider.ts,src/groupManager.ts"
+    },
+    {
+      "id": "core-entry",
+      "name": "插件入口与命令",
+      "description": "入口激活、视图注册与命令行为",
+      "progress_status": "completed",
+      "dependent_files": "src/extension.ts,package.json"
+    },
+    {
+      "id": "core-tree-group",
+      "name": "树视图与分组",
+      "description": "TreeView 数据模型与分组策略",
+      "progress_status": "completed",
+      "dependent_files": "src/markdownTreeProvider.ts,src/groupManager.ts,src/types.ts"
+    },
+    {
+      "id": "core-file-watcher",
+      "name": "文件监听",
+      "description": "Markdown 文件监听与刷新",
+      "progress_status": "completed",
+      "dependent_files": "src/fileWatcher.ts,src/extension.ts"
+    }
+  ]
+}

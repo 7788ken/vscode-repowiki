@@ -41,22 +41,51 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "repowiki.detectAgents",
+        "title": "检测 AI Agent",
+        "icon": "$(search)"
+      },
+      {
+        "command": "repowiki.switchAgent",
+        "title": "切换 AI Agent",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "repowiki.initDocs",
+        "title": "初始化文档库",
+        "icon": "$(file-add)"
+      },
+      {
+        "command": "repowiki.updateDocs",
+        "title": "更新文档",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "repowiki.regenerateDocs",
+        "title": "强制重新生成所有文档",
+        "icon": "$(debug-restart)"
+      },
+      {
         "command": "repowiki.createGroup",
-        "title": "新建分组",
+        "title": "新建虚拟分组",
         "icon": "$(new-folder)"
       },
       {
         "command": "repowiki.deleteGroup",
-        "title": "删除分组",
+        "title": "删除虚拟分组",
         "icon": "$(trash)"
       },
       {
         "command": "repowiki.renameGroup",
-        "title": "重命名分组"
+        "title": "重命名虚拟分组"
       },
       {
         "command": "repowiki.moveToGroup",
-        "title": "移动到分组"
+        "title": "移动到虚拟分组"
+      },
+      {
+        "command": "repowiki.setAlias",
+        "title": "设置目录别名"
       },
       {
         "command": "repowiki.openFile",
@@ -68,23 +97,52 @@
         {
           "command": "repowiki.refresh",
           "when": "view == repowiki.markdownExplorer",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "repowiki.updateDocs",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "navigation@2"
         },
         {
           "command": "repowiki.createGroup",
           "when": "view == repowiki.markdownExplorer",
-          "group": "navigation"
+          "group": "navigation@3"
+        },
+        {
+          "command": "repowiki.initDocs",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "1_docs"
+        },
+        {
+          "command": "repowiki.regenerateDocs",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "1_docs"
+        },
+        {
+          "command": "repowiki.detectAgents",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "2_agents"
+        },
+        {
+          "command": "repowiki.switchAgent",
+          "when": "view == repowiki.markdownExplorer",
+          "group": "2_agents"
         }
       ],
       "view/item/context": [
         {
           "command": "repowiki.deleteGroup",
-          "when": "view == repowiki.markdownExplorer && viewItem == group",
+          "when": "view == repowiki.markdownExplorer && viewItem == virtualGroup",
           "group": "inline"
         },
         {
           "command": "repowiki.renameGroup",
-          "when": "view == repowiki.markdownExplorer && viewItem == group"
+          "when": "view == repowiki.markdownExplorer && viewItem == virtualGroup"
+        },
+        {
+          "command": "repowiki.setAlias",
+          "when": "view == repowiki.markdownExplorer && viewItem == physicalGroup"
         },
         {
           "command": "repowiki.moveToGroup",
@@ -98,7 +156,40 @@
         "repowiki.groups": {
           "type": "object",
           "default": {},
-          "description": "文档分组配置，键为分组名，值为文件路径数组"
+          "description": "虚拟分组配置，键为分组名，值为文件路径数组"
+        },
+        "repowiki.directoryAliases": {
+          "type": "object",
+          "default": {},
+          "description": "目录别名配置，键为目录路径，值为显示别名"
+        },
+        "repowiki.initialized": {
+          "type": "boolean",
+          "default": false,
+          "description": "插件是否已初始化"
+        },
+        "repowiki.docMappings": {
+          "type": "array",
+          "default": [],
+          "description": "代码文件与文档的映射关系配置"
+        },
+        "repowiki.preferredAgent": {
+          "type": "string",
+          "enum": ["qoder", "claude", "codex", "cursor", "aider", "custom"],
+          "description": "首选的 AI Agent 类型"
+        },
+        "repowiki.customAgentCommand": {
+          "type": "string",
+          "description": "自定义 AI Agent 命令名称"
+        },
+        "repowiki.customAgentTemplate": {
+          "type": "string",
+          "description": "自定义 AI Agent 命令模板（支持占位符：{{PROMPT}}, {{DOC_PATH}}, {{TITLE}}, {{SOURCE_FILES}}）"
+        },
+        "repowiki.customAgentPriority": {
+          "type": "number",
+          "default": 100,
+          "description": "自定义 AI Agent 的优先级"
         },
         "repowiki.excludePatterns": {
           "type": "array",
