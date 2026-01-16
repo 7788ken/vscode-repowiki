@@ -68,32 +68,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // 注册命令：创建虚拟分组
-  context.subscriptions.push(
-    vscode.commands.registerCommand('repowiki.createGroup', async () => {
-      const name = await vscode.window.showInputBox({
-        prompt: '输入新虚拟分组名称',
-        placeHolder: '虚拟分组名称',
-        validateInput: (value) => {
-          if (!value?.trim()) {
-            return '虚拟分组名称不能为空';
-          }
-          if (value === GroupManager.DEFAULT_GROUP) {
-            return '不能使用默认分组名';
-          }
-          return null;
-        },
-      });
-
-      if (name) {
-        const success = await groupManager.createGroup(name.trim());
-        if (success) {
-          treeProvider.refresh();
-        }
-      }
-    })
-  );
-
   // 注册命令：删除虚拟分组
   context.subscriptions.push(
     vscode.commands.registerCommand('repowiki.deleteGroup', async (node: TreeNodeData) => {
@@ -153,41 +127,6 @@ export function activate(context: vscode.ExtensionContext) {
         const success = await groupManager.renameGroup(node.groupName, newName.trim());
         if (success) {
           treeProvider.refresh();
-        }
-      }
-    })
-  );
-
-  // 注册命令：移动文件到虚拟分组
-  context.subscriptions.push(
-    vscode.commands.registerCommand('repowiki.moveToGroup', async (node: TreeNodeData) => {
-      if (!node?.relativePath) {
-        return;
-      }
-
-      const virtualGroups = groupManager.getAllVirtualGroupNames();
-      
-      if (virtualGroups.length === 0) {
-        const create = await vscode.window.showInformationMessage(
-          '还没有虚拟分组，是否创建一个？',
-          '创建',
-          '取消'
-        );
-        if (create === '创建') {
-          await vscode.commands.executeCommand('repowiki.createGroup');
-        }
-        return;
-      }
-
-      const selected = await vscode.window.showQuickPick(virtualGroups, {
-        placeHolder: '选择目标虚拟分组',
-      });
-
-      if (selected) {
-        const success = await groupManager.moveFileToGroup(node.relativePath, selected);
-        if (success) {
-          treeProvider.refresh();
-          vscode.window.showInformationMessage(`已将文件移动到虚拟分组 "${selected}"`);
         }
       }
     })

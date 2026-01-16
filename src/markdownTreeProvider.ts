@@ -25,11 +25,15 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
 
   getTreeItem(element: TreeNodeData): vscode.TreeItem {
     if (element.type === 'group') {
-      const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.Expanded);
-      // 根据分组类型设置不同的 contextValue
+      const item = new vscode.TreeItem(
+        element.label,
+        vscode.TreeItemCollapsibleState.Collapsed
+      );
       item.contextValue = element.isPhysical ? 'physicalGroup' : 'virtualGroup';
       item.iconPath = new vscode.ThemeIcon(element.isPhysical ? 'folder' : 'folder-library');
-      item.tooltip = element.isPhysical ? `物理目录: ${element.directoryPath}` : '虚拟分组';
+      item.tooltip = element.isPhysical
+        ? `物理目录: ${element.directoryPath || ''}`
+        : '虚拟分组';
       return item;
     }
 
@@ -51,78 +55,126 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
       return [];
     }
 
-    // 根节点：返回所有分组
+    // 根节点：返回目录树根节点
     if (!element) {
-      return this.getGroupNodes();
+      return this.getRootNodes();
     }
 
-    // 分组节点：返回该分组下的文件
-    if (element.type === 'group' && element.groupName) {
-      return this.getFileNodes(element.groupName, element.isPhysical || false, element.directoryPath);
+    if (element.type !== 'group') {
+      return [];
+    }
+
+    if (element.isPhysical) {
+      return this.getDirectoryChildren(element.directoryPath || '');
+    }
+
+    if (element.groupName) {
+      return this.getVirtualGroupFileNodes(element.groupName);
     }
 
     return [];
   }
 
-  /** 获取所有分组节点（物理+虚拟） */
-  private async getGroupNodes(): Promise<TreeNodeData[]> {
+  /** 获取根节点（目录树根 + 虚拟分组） */
+  private async getRootNodes(): Promise<TreeNodeData[]> {
     const files = await this.scanMarkdownFiles();
-    const nodes: TreeNodeData[] = [];
+    const directories = this.getImmediateDirectories(files, '');
+    const directoryNodes = directories.map((dirPath) => this.buildDirectoryNode(dirPath));
 
-    // 1. 物理分组（目录）
-    const physicalGroups = await this.groupManager.getPhysicalGroups(files);
-    for (const [dirPath, displayName] of physicalGroups.entries()) {
-      nodes.push({
-        type: 'group' as const,
-        label: displayName,
-        groupName: displayName,
-        isPhysical: true,
-        directoryPath: dirPath,
-      });
-    }
+    const rootFiles = files
+      .filter((f) => f.directory === '' && f.isPhysical)
+      .map((f) => this.buildFileNode(f));
 
-    // 2. 虚拟分组
     const virtualGroups = this.groupManager.getAllVirtualGroupNames();
-    for (const name of virtualGroups) {
-      nodes.push({
-        type: 'group' as const,
-        label: name,
-        groupName: name,
-        isPhysical: false,
-      });
-    }
+    const virtualGroupNodes = virtualGroups.map((name) => ({
+      type: 'group' as const,
+      label: name,
+      groupName: name,
+      isPhysical: false,
+    }));
 
-    // 排序：物理分组在前，虚拟分组在后
-    nodes.sort((a, b) => {
-      if (a.isPhysical === b.isPhysical) {
-        return a.label.localeCompare(b.label);
-      }
-      return a.isPhysical ? -1 : 1;
-    });
+    directoryNodes.sort((a, b) => a.label.localeCompare(b.label));
+    rootFiles.sort((a, b) => a.label.localeCompare(b.label));
+    virtualGroupNodes.sort((a, b) => a.label.localeCompare(b.label));
 
-    return nodes;
+    return [...directoryNodes, ...rootFiles, ...virtualGroupNodes];
   }
 
-  /** 获取指定分组下的文件节点 */
-  private async getFileNodes(groupName: string, isPhysical: boolean, directoryPath?: string): Promise<TreeNodeData[]> {
+  /** 获取目录下的直接子节点（子目录 + 文件） */
+  private async getDirectoryChildren(directoryPath: string): Promise<TreeNodeData[]> {
     const files = await this.scanMarkdownFiles();
-    
+    const directories = this.getImmediateDirectories(files, directoryPath);
+    const directoryNodes = directories.map((dirPath) => this.buildDirectoryNode(dirPath));
+
+    const fileNodes = files
+      .filter((f) => f.directory === directoryPath && f.isPhysical)
+      .map((f) => this.buildFileNode(f));
+
+    directoryNodes.sort((a, b) => a.label.localeCompare(b.label));
+    fileNodes.sort((a, b) => a.label.localeCompare(b.label));
+
+    return [...directoryNodes, ...fileNodes];
+  }
+
+  /** 获取虚拟分组下的文件节点 */
+  private async getVirtualGroupFileNodes(groupName: string): Promise<TreeNodeData[]> {
+    const files = await this.scanMarkdownFiles();
     return files
-      .filter((f) => {
-        if (isPhysical && directoryPath !== undefined) {
-          // 物理分组：只显示该目录下且未被虚拟分组占用的文件
-          return f.directory === directoryPath && f.isPhysical;
-        } else {
-          // 虚拟分组：显示分配到该虚拟分组的文件
-          return !f.isPhysical && f.groupName === groupName;
+      .filter((f) => !f.isPhysical && f.groupName === groupName)
+      .map((f) => this.buildFileNode(f))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  private buildDirectoryNode(directoryPath: string): TreeNodeData {
+    const displayName = this.groupManager.getDirectoryDisplayName(directoryPath);
+    const label = displayName === directoryPath ? path.basename(directoryPath) : displayName;
+
+    return {
+      type: 'group' as const,
+      label,
+      isPhysical: true,
+      directoryPath,
+    };
+  }
+
+  private buildFileNode(file: MarkdownFileInfo): TreeNodeData {
+    return {
+      type: 'file' as const,
+      label: file.name,
+      filePath: file.absolutePath,
+      relativePath: file.relativePath,
+    };
+  }
+
+  private getImmediateDirectories(files: MarkdownFileInfo[], baseDir: string): string[] {
+    const result = new Set<string>();
+    const prefix = baseDir ? `${baseDir}${path.sep}` : '';
+
+    for (const file of files) {
+      if (!file.isPhysical) {
+        continue;
+      }
+      if (!file.directory) {
+        continue;
+      }
+
+      if (baseDir) {
+        if (!file.directory.startsWith(prefix)) {
+          continue;
         }
-      })
-      .map((f) => ({
-        type: 'file' as const,
-        label: f.name,
-        filePath: f.absolutePath,
-        relativePath: f.relativePath,
-      }));
+        const remainder = file.directory.slice(prefix.length);
+        if (!remainder) {
+          continue;
+        }
+        const nextSegment = remainder.split(path.sep)[0];
+        result.add(`${baseDir}${path.sep}${nextSegment}`);
+      } else {
+        const nextSegment = file.directory.split(path.sep)[0];
+        result.add(nextSegment);
+      }
+    }
+
+    return [...result];
   }
 
   /** 扫描工作区所有 Markdown 文件 */
@@ -143,7 +195,8 @@ export class MarkdownTreeProvider implements vscode.TreeDataProvider<TreeNodeDat
     return uris.map((uri) => {
       const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
       const name = path.basename(uri.fsPath);
-      const directory = path.dirname(relativePath);
+      const directoryPath = path.dirname(relativePath);
+      const directory = directoryPath === '.' ? '' : directoryPath;
       
       // 获取文件所属分组
       const { groupName, isPhysical } = this.groupManager.getFileGroup(relativePath);

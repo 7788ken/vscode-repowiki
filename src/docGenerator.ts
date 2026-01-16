@@ -91,6 +91,44 @@ export class DocGenerator {
     }
   }
 
+  private async normalizeFileLinks(docAbsPath: string): Promise<void> {
+    const content = await fs.readFile(docAbsPath, 'utf-8');
+    const docDir = path.dirname(docAbsPath);
+
+    const normalized = content.replace(/file:\/\/([^\s)<>]+)/g, (_match, rawPath) => {
+      let pathPart = rawPath;
+      let locator = '';
+      const hashIndex = rawPath.indexOf('#');
+      if (hashIndex !== -1) {
+        pathPart = rawPath.slice(0, hashIndex);
+        locator = rawPath.slice(hashIndex);
+      } else {
+        const lineMatch = rawPath.match(/^(.*?)(:(\d+)(?:-(\d+))?)$/);
+        if (lineMatch) {
+          pathPart = lineMatch[1];
+          const startLine = lineMatch[3];
+          const endLine = lineMatch[4];
+          locator = endLine ? `#L${startLine}-L${endLine}` : `#L${startLine}`;
+        }
+      }
+
+      const absolutePath = path.isAbsolute(pathPart)
+        ? pathPart
+        : path.join(this.workspaceRoot, pathPart);
+      let relativePath = path.relative(docDir, absolutePath);
+      if (!relativePath.startsWith('.')) {
+        relativePath = `./${relativePath}`;
+      }
+      relativePath = relativePath.split(path.sep).join('/');
+
+      return `${relativePath}${locator}`;
+    });
+
+    if (normalized !== content) {
+      await fs.writeFile(docAbsPath, normalized, 'utf-8');
+    }
+  }
+
   private async generateDoc(metadata: DocMetadata): Promise<void> {
     this.log(`\n生成文档: ${metadata.title}`);
     this.log(`  路径: ${metadata.docPath}`);
@@ -102,6 +140,7 @@ export class DocGenerator {
 
     const isUpdate = metadata.status === DocStatus.OUTDATED;
     await this.callAgent(metadata.docPath, metadata.title, metadata.sourceFiles, isUpdate);
+    await this.normalizeFileLinks(docAbsPath);
     
     this.log(`✓ 完成: ${metadata.title}`);
   }

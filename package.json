@@ -66,11 +66,6 @@
         "icon": "$(debug-restart)"
       },
       {
-        "command": "repowiki.createGroup",
-        "title": "新建虚拟分组",
-        "icon": "$(new-folder)"
-      },
-      {
         "command": "repowiki.deleteGroup",
         "title": "删除虚拟分组",
         "icon": "$(trash)"
@@ -78,10 +73,6 @@
       {
         "command": "repowiki.renameGroup",
         "title": "重命名虚拟分组"
-      },
-      {
-        "command": "repowiki.moveToGroup",
-        "title": "移动到虚拟分组"
       },
       {
         "command": "repowiki.setAlias",
@@ -103,11 +94,6 @@
           "command": "repowiki.updateDocs",
           "when": "view == repowiki.markdownExplorer",
           "group": "navigation@2"
-        },
-        {
-          "command": "repowiki.createGroup",
-          "when": "view == repowiki.markdownExplorer",
-          "group": "navigation@3"
         },
         {
           "command": "repowiki.initDocs",
@@ -143,10 +129,6 @@
         {
           "command": "repowiki.setAlias",
           "when": "view == repowiki.markdownExplorer && viewItem == physicalGroup"
-        },
-        {
-          "command": "repowiki.moveToGroup",
-          "when": "view == repowiki.markdownExplorer && viewItem == file"
         }
       ]
     },
