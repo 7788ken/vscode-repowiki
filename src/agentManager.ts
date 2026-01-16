@@ -16,9 +16,12 @@ export class AgentManager {
   private availableProviders: AgentProvider[] = [];
   private activeProvider: AgentProvider | undefined;
   private outputChannel: vscode.OutputChannel;
+  private enableLogging = false;
 
   constructor() {
     this.outputChannel = vscode.window.createOutputChannel('RepoWiki Agent Manager');
+    const config = vscode.workspace.getConfiguration('repowiki');
+    this.enableLogging = config.get<boolean>('enableLogging', false);
     this.initializeProviders();
   }
 
@@ -44,7 +47,10 @@ export class AgentManager {
       const available = await provider.isAvailable();
       const version = available ? await provider.getVersion() : undefined;
 
-      this.log(`${provider.name}: ${available ? '✓ 可用' : '✗ 不可用'}${version ? ` (${version})` : ''}`);
+      this.log(
+        `${provider.name}: ${available ? '✓ 可用' : '✗ 不可用'}${version ? ` (${version})` : ''}`,
+        !available
+      );
 
       configs.push({
         type,
@@ -66,7 +72,10 @@ export class AgentManager {
       );
       const available = await customProvider.isAvailable();
 
-      this.log(`自定义命令 (${customConfig.commandName}): ${available ? '✓ 可用' : '✗ 不可用'}`);
+      this.log(
+        `自定义命令 (${customConfig.commandName}): ${available ? '✓ 可用' : '✗ 不可用'}`,
+        !available
+      );
 
       configs.push({
         type: AgentProviderType.CUSTOM,
@@ -81,7 +90,10 @@ export class AgentManager {
       }
     }
 
-    this.log(`\n检测完成，找到 ${this.availableProviders.length} 个可用的 Agent\n`);
+    this.log(
+      `\n检测完成，找到 ${this.availableProviders.length} 个可用的 Agent\n`,
+      this.availableProviders.length === 0
+    );
 
     return configs;
   }
@@ -183,7 +195,10 @@ export class AgentManager {
   }
 
   /** 输出日志 */
-  private log(message: string): void {
+  private log(message: string, force = false): void {
+    if (!this.enableLogging && !force) {
+      return;
+    }
     this.outputChannel.appendLine(message);
   }
 
