@@ -145,8 +145,16 @@ export class DocGenerator {
     const isUpdate = metadata.status === DocStatus.OUTDATED;
     await this.callAgent(metadata.docPath, metadata.title, metadata.sourceFiles, isUpdate);
     await this.normalizeFileLinks(docAbsPath);
-    
+
     this.log(`✓ 完成: ${metadata.title}`);
+  }
+
+  /**
+   * 更新单个文档（公开方法，用于自动更新功能）
+   * @param metadata 文档元数据
+   */
+  async updateSingleDoc(metadata: DocMetadata): Promise<void> {
+    await this.generateDoc(metadata);
   }
 
   async initializeDocs(

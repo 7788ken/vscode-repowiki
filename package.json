@@ -181,6 +181,23 @@
           "type": "boolean",
           "default": false,
           "description": "启用 RepoWiki 插件的详细日志输出,用于调试和问题排查"
+        },
+        "repowiki.autoUpdateOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "保存源代码文件时自动更新对应的文档"
+        },
+        "repowiki.autoUpdateDelay": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "自动更新延迟时间（毫秒），避免频繁更新"
+        },
+        "repowiki.autoUpdateShowNotification": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动更新时显示通知提示"
         }
       }
     }
