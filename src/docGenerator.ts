@@ -13,6 +13,7 @@ export class DocGenerator {
   private statusChecker: DocStatusChecker;
   private outputChannel: vscode.OutputChannel;
   private agentManager: AgentManager;
+  private enableLogging: boolean;
 
   constructor(workspaceRoot: string, extensionPath: string, agentManager: AgentManager) {
     this.workspaceRoot = workspaceRoot;
@@ -20,6 +21,8 @@ export class DocGenerator {
     this.statusChecker = new DocStatusChecker(workspaceRoot);
     this.outputChannel = vscode.window.createOutputChannel('RepoWiki 文档生成');
     this.agentManager = agentManager;
+    const config = vscode.workspace.getConfiguration('repowiki');
+    this.enableLogging = config.get<boolean>('enableLogging', false);
   }
 
   private async checkRepowikiExists(): Promise<boolean> {
@@ -48,16 +51,16 @@ export class DocGenerator {
       await fs.copyFile(skillTemplatePath, skillTargetPath);
       this.log(`✓ 已复制 skill.md 模板`);
     } catch (error) {
-      this.log(`警告: 无法复制 skill.md 模板文件`);
-      this.log(`  源路径: ${skillTemplatePath}`);
-      this.log(`  目标路径: ${skillTargetPath}`);
-      this.log(`  错误: ${error}`);
+      this.log(`警告: 无法复制 skill.md 模板文件`, true);
+      this.log(`  源路径: ${skillTemplatePath}`, true);
+      this.log(`  目标路径: ${skillTargetPath}`, true);
+      this.log(`  错误: ${error}`, true);
     }
 
     this.log('✓ 已初始化 repowiki 目录结构');
   }
 
-  private async callAgent(docPath: string, title: string, isUpdate: boolean): Promise<void> {
+  private async callAgent(docPath: string, title: string, sourceFiles: string[], isUpdate: boolean): Promise<void> {
     const agent = this.agentManager.getActiveAgent();
     
     if (!agent) {
@@ -65,13 +68,17 @@ export class DocGenerator {
     }
 
     this.log(`使用 ${agent.name} 生成文档`);
+    if (sourceFiles.length > 0) {
+      this.log(`  源文件: ${sourceFiles.join(', ')}`);
+    }
 
     const params: AgentCallParams = {
       docPath,
       title,
-      sourceFiles: [],
+      sourceFiles,
       workspaceRoot: this.workspaceRoot,
       isUpdate,
+      log: (message) => this.log(message),
     };
 
     const result = await agent.call(params);
@@ -84,7 +91,45 @@ export class DocGenerator {
       this.log(result.stdout);
     }
     if (result.stderr) {
-      this.log(`stderr: ${result.stderr}`);
+      this.log(`stderr: ${result.stderr}`, true);
+    }
+  }
+
+  private async normalizeFileLinks(docAbsPath: string): Promise<void> {
+    const content = await fs.readFile(docAbsPath, 'utf-8');
+    const docDir = path.dirname(docAbsPath);
+
+    const normalized = content.replace(/file:\/\/([^\s)<>]+)/g, (_match, rawPath) => {
+      let pathPart = rawPath;
+      let locator = '';
+      const hashIndex = rawPath.indexOf('#');
+      if (hashIndex !== -1) {
+        pathPart = rawPath.slice(0, hashIndex);
+        locator = rawPath.slice(hashIndex);
+      } else {
+        const lineMatch = rawPath.match(/^(.*?)(:(\d+)(?:-(\d+))?)$/);
+        if (lineMatch) {
+          pathPart = lineMatch[1];
+          const startLine = lineMatch[3];
+          const endLine = lineMatch[4];
+          locator = endLine ? `#L${startLine}-L${endLine}` : `#L${startLine}`;
+        }
+      }
+
+      const absolutePath = path.isAbsolute(pathPart)
+        ? pathPart
+        : path.join(this.workspaceRoot, pathPart);
+      let relativePath = path.relative(docDir, absolutePath);
+      if (!relativePath.startsWith('.')) {
+        relativePath = `./${relativePath}`;
+      }
+      relativePath = relativePath.split(path.sep).join('/');
+
+      return `${relativePath}${locator}`;
+    });
+
+    if (normalized !== content) {
+      await fs.writeFile(docAbsPath, normalized, 'utf-8');
     }
   }
 
@@ -98,9 +143,18 @@ export class DocGenerator {
     await fs.mkdir(docDir, { recursive: true });
 
     const isUpdate = metadata.status === DocStatus.OUTDATED;
-    await this.callAgent(metadata.docPath, metadata.title, isUpdate);
-    
+    await this.callAgent(metadata.docPath, metadata.title, metadata.sourceFiles, isUpdate);
+    await this.normalizeFileLinks(docAbsPath);
+
     this.log(`✓ 完成: ${metadata.title}`);
+  }
+
+  /**
+   * 更新单个文档（公开方法，用于自动更新功能）
+   * @param metadata 文档元数据
+   */
+  async updateSingleDoc(metadata: DocMetadata): Promise<void> {
+    await this.generateDoc(metadata);
   }
 
   async initializeDocs(
@@ -146,7 +200,7 @@ export class DocGenerator {
         await this.generateDoc(metadata);
         result.success++;
       } catch (error: any) {
-        this.log(`✗ 失败: ${mapping.title} - ${error.message}`);
+        this.log(`✗ 失败: ${mapping.title} - ${error.message}`, true);
         result.failed++;
         result.errors.push(`${mapping.title}: ${error.message}`);
       }
@@ -206,7 +260,7 @@ export class DocGenerator {
         await this.generateDoc(metadata);
         result.success++;
       } catch (error: any) {
-        this.log(`✗ 失败: ${metadata.title} - ${error.message}`);
+        this.log(`✗ 失败: ${metadata.title} - ${error.message}`, true);
         result.failed++;
         result.errors.push(`${metadata.title}: ${error.message}`);
       }
@@ -228,13 +282,16 @@ export class DocGenerator {
       await fs.rm(repowikiPath, { recursive: true, force: true });
       this.log('已清空现有文档\n');
     } catch (error) {
-      this.log(`清空文档失败: ${error}`);
+      this.log(`清空文档失败: ${error}`, true);
     }
 
     return this.initializeDocs(progress);
   }
 
-  private log(message: string): void {
+  private log(message: string, force = false): void {
+    if (!this.enableLogging && !force) {
+      return;
+    }
     this.outputChannel.appendLine(message);
   }
 
@@ -246,8 +303,8 @@ export class DocGenerator {
     this.log(`耗时: ${(result.duration / 1000).toFixed(2)} 秒`);
 
     if (result.errors.length > 0) {
-      this.log('\n错误详情:');
-      result.errors.forEach((err) => this.log(`  - ${err}`));
+      this.log('\n错误详情:', true);
+      result.errors.forEach((err) => this.log(`  - ${err}`, true));
     }
   }
 

@@ -42,18 +42,15 @@
       },
       {
         "command": "repowiki.detectAgents",
-        "title": "检测 AI Agent",
-        "icon": "$(search)"
+        "title": "检测 AI Agent"
       },
       {
         "command": "repowiki.switchAgent",
-        "title": "切换 AI Agent",
-        "icon": "$(arrow-swap)"
+        "title": "切换 AI Agent"
       },
       {
         "command": "repowiki.initDocs",
-        "title": "初始化文档库",
-        "icon": "$(file-add)"
+        "title": "初始化文档库"
       },
       {
         "command": "repowiki.updateDocs",
@@ -62,13 +59,7 @@
       },
       {
         "command": "repowiki.regenerateDocs",
-        "title": "强制重新生成所有文档",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "repowiki.createGroup",
-        "title": "新建虚拟分组",
-        "icon": "$(new-folder)"
+        "title": "强制重新生成所有文档"
       },
       {
         "command": "repowiki.deleteGroup",
@@ -78,10 +69,6 @@
       {
         "command": "repowiki.renameGroup",
         "title": "重命名虚拟分组"
-      },
-      {
-        "command": "repowiki.moveToGroup",
-        "title": "移动到虚拟分组"
       },
       {
         "command": "repowiki.setAlias",
@@ -105,29 +92,24 @@
           "group": "navigation@2"
         },
         {
-          "command": "repowiki.createGroup",
-          "when": "view == repowiki.markdownExplorer",
-          "group": "navigation@3"
-        },
-        {
           "command": "repowiki.initDocs",
           "when": "view == repowiki.markdownExplorer",
-          "group": "1_docs"
+          "group": "overflow"
         },
         {
           "command": "repowiki.regenerateDocs",
           "when": "view == repowiki.markdownExplorer",
-          "group": "1_docs"
+          "group": "overflow"
         },
         {
           "command": "repowiki.detectAgents",
           "when": "view == repowiki.markdownExplorer",
-          "group": "2_agents"
+          "group": "overflow"
         },
         {
           "command": "repowiki.switchAgent",
           "when": "view == repowiki.markdownExplorer",
-          "group": "2_agents"
+          "group": "overflow"
         }
       ],
       "view/item/context": [
@@ -143,10 +125,6 @@
         {
           "command": "repowiki.setAlias",
           "when": "view == repowiki.markdownExplorer && viewItem == physicalGroup"
-        },
-        {
-          "command": "repowiki.moveToGroup",
-          "when": "view == repowiki.markdownExplorer && viewItem == file"
         }
       ]
     },
@@ -198,6 +176,28 @@
             "**/.git/**"
           ],
           "description": "排除的文件匹配模式"
+        },
+        "repowiki.enableLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用 RepoWiki 插件的详细日志输出,用于调试和问题排查"
+        },
+        "repowiki.autoUpdateOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "保存源代码文件时自动更新对应的文档"
+        },
+        "repowiki.autoUpdateDelay": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "自动更新延迟时间（毫秒），避免频繁更新"
+        },
+        "repowiki.autoUpdateShowNotification": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动更新时显示通知提示"
         }
       }
     }

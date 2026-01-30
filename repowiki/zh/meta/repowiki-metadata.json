@@ -44,6 +44,26 @@
       "source_id": "index",
       "target_id": "core-file-watcher",
       "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "doc-generator",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "doc-status-checker",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "doc-mapping-config",
+      "relationship_type": "PARENT_CHILD"
+    },
+    {
+      "source_id": "index",
+      "target_id": "agent-manager",
+      "relationship_type": "PARENT_CHILD"
     }
   ],
   "wiki_catalogs": [

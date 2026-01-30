@@ -1,30 +1,83 @@
 import * as vscode from 'vscode';
 import { MarkdownTreeProvider } from './markdownTreeProvider';
 import { FileWatcher } from './fileWatcher';
+import { SourceFileWatcher } from './sourceFileWatcher';
 import { GroupManager } from './groupManager';
 import { TreeNodeData } from './types';
 import { DocGenerator } from './docGenerator';
 import { AgentManager } from './agentManager';
 import { AgentProviderType } from './agentTypes';
+import { DocStatus, DocMetadata, CodeDocMapping } from './docTypes';
+import { DocStatusChecker } from './docStatusChecker';
 
 export function activate(context: vscode.ExtensionContext) {
   const treeProvider = new MarkdownTreeProvider(context);
   const fileWatcher = new FileWatcher();
+  const sourceFileWatcher = new SourceFileWatcher();
   const groupManager = treeProvider.getGroupManager();
 
   // AI Agent 管理器
   const agentManager = new AgentManager();
-  
+
   // 文档生成器
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const docGenerator = workspaceRoot 
-    ? new DocGenerator(workspaceRoot, context.extensionPath, agentManager) 
+  const docGenerator = workspaceRoot
+    ? new DocGenerator(workspaceRoot, context.extensionPath, agentManager)
+    : undefined;
+
+  // 文档状态检查器
+  const statusChecker = workspaceRoot
+    ? new DocStatusChecker(workspaceRoot)
     : undefined;
 
   // 首次启动初始化
   if (!groupManager.isInitialized()) {
     groupManager.markInitialized().then(() => {
       treeProvider.refresh();
+    });
+  }
+
+  // 设置源文件保存时的自动更新回调
+  if (docGenerator && statusChecker) {
+    sourceFileWatcher.onUpdate(async (affectedMappings: CodeDocMapping[]) => {
+      // 检查文档状态
+      const metadataList = await statusChecker.checkAllDocs(affectedMappings);
+      const docsToUpdate = metadataList.filter(
+        (m) => m.status === DocStatus.MISSING || m.status === DocStatus.OUTDATED
+      );
+
+      if (docsToUpdate.length === 0) {
+        vscode.window.showInformationMessage('所有文档都是最新的');
+        return;
+      }
+
+      // 执行更新
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: '自动更新文档',
+          cancellable: true,
+        },
+        async (progress) => {
+          try {
+            for (let i = 0; i < docsToUpdate.length; i++) {
+              const metadata = docsToUpdate[i];
+              progress.report({
+                message: `更新 ${metadata.title} (${i + 1}/${docsToUpdate.length})`,
+              });
+
+              await docGenerator.updateSingleDoc(metadata);
+            }
+
+            vscode.window.showInformationMessage(
+              `已自动更新 ${docsToUpdate.length} 个文档`
+            );
+            treeProvider.refresh();
+          } catch (error: any) {
+            vscode.window.showErrorMessage(`自动更新失败: ${error.message}`);
+          }
+        }
+      );
     });
   }
 
@@ -64,32 +117,6 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.window.showTextDocument(doc);
       } catch (error) {
         vscode.window.showErrorMessage(`无法打开文件: ${filePath}`);
-      }
-    })
-  );
-
-  // 注册命令：创建虚拟分组
-  context.subscriptions.push(
-    vscode.commands.registerCommand('repowiki.createGroup', async () => {
-      const name = await vscode.window.showInputBox({
-        prompt: '输入新虚拟分组名称',
-        placeHolder: '虚拟分组名称',
-        validateInput: (value) => {
-          if (!value?.trim()) {
-            return '虚拟分组名称不能为空';
-          }
-          if (value === GroupManager.DEFAULT_GROUP) {
-            return '不能使用默认分组名';
-          }
-          return null;
-        },
-      });
-
-      if (name) {
-        const success = await groupManager.createGroup(name.trim());
-        if (success) {
-          treeProvider.refresh();
-        }
       }
     })
   );
@@ -153,41 +180,6 @@ export function activate(context: vscode.ExtensionContext) {
         const success = await groupManager.renameGroup(node.groupName, newName.trim());
         if (success) {
           treeProvider.refresh();
-        }
-      }
-    })
-  );
-
-  // 注册命令：移动文件到虚拟分组
-  context.subscriptions.push(
-    vscode.commands.registerCommand('repowiki.moveToGroup', async (node: TreeNodeData) => {
-      if (!node?.relativePath) {
-        return;
-      }
-
-      const virtualGroups = groupManager.getAllVirtualGroupNames();
-      
-      if (virtualGroups.length === 0) {
-        const create = await vscode.window.showInformationMessage(
-          '还没有虚拟分组，是否创建一个？',
-          '创建',
-          '取消'
-        );
-        if (create === '创建') {
-          await vscode.commands.executeCommand('repowiki.createGroup');
-        }
-        return;
-      }
-
-      const selected = await vscode.window.showQuickPick(virtualGroups, {
-        placeHolder: '选择目标虚拟分组',
-      });
-
-      if (selected) {
-        const success = await groupManager.moveFileToGroup(node.relativePath, selected);
-        if (success) {
-          treeProvider.refresh();
-          vscode.window.showInformationMessage(`已将文件移动到虚拟分组 "${selected}"`);
         }
       }
     })
@@ -449,7 +441,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // 注册资源释放
-  context.subscriptions.push(treeView, fileWatcher, agentManager);
+  context.subscriptions.push(treeView, fileWatcher, sourceFileWatcher, agentManager);
   if (docGenerator) {
     context.subscriptions.push(docGenerator);
   }

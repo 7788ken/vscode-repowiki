@@ -68,8 +68,8 @@
 
 <cite>
 **本文档引用的文件**
-- [文件名](file://相对路径)
-- [文件名](file://相对路径)
+- [文件名](相对路径)
+- [文件名](相对路径)
 </cite>
 
 ## 目录
@@ -81,13 +81,13 @@
 内容...
 
 **Section sources**
-- [文件名](file://路径#L行号-L行号)
+- [文件名](相对路径#L行号-L行号)
 
 ## 章节二
 内容...
 
 **Section sources**
-- [文件名](file://路径)
+- [文件名](相对路径)
 ```
 
 ### 关键格式元素
@@ -99,9 +99,9 @@
 ```markdown
 <cite>
 **本文档引用的文件**
-- [env.ts](file://backend/src/config/env.ts)
-- [.env.example](file://backend/.env.example)
-- [index.ts](file://backend/src/index.ts)
+- [env.ts](backend/src/config/env.ts)
+- [.env.example](backend/.env.example)
+- [index.ts](backend/src/index.ts)
 </cite>
 ```
 
@@ -115,7 +115,7 @@
 配置系统通过 dotenv 库加载环境变量...
 
 **Section sources**
-- [env.ts](file://backend/src/config/env.ts#L1-L50)
+- [env.ts](backend/src/config/env.ts#L1-L50)
 ```
 
 #### 3. 图表来源（Diagram sources）
@@ -130,7 +130,7 @@ flowchart TD
 ```
 
 **Diagram sources**
-- [orchestrator.ts](file://backend/src/modules/assistant/orchestrator.ts#L100-L150)
+- [orchestrator.ts](backend/src/modules/assistant/orchestrator.ts#L100-L150)
 ```
 
 ---
@@ -158,7 +158,7 @@ flowchart TD
 
 <cite>
 **本文档引用的文件**
-- [文件](file://路径)
+- [文件](相对路径)
 </cite>
 
 ## 目录
@@ -172,7 +172,7 @@ flowchart TD
 简要介绍主题背景和目的...
 
 **Section sources**
-- [文件](file://路径)
+- [文件](相对路径)
 
 ## 核心概念
 ...
@@ -384,7 +384,7 @@ flowchart LR
 - ✅ 提供可运行的代码示例
 - ✅ 保持文档与代码同步更新
 - ✅ 使用中文编写，术语可保留英文
-- ✅ 文件路径使用 `file://` 协议
+- ✅ 文件路径使用相对路径链接（相对当前文档位置）
 
 ### DON'T（避免）
 
@@ -412,22 +412,22 @@ flowchart LR
 ### 文件引用格式
 
 ```markdown
-[文件名](file://相对路径)
-[文件名](file://相对路径#L起始行-L结束行)
+[文件名](相对路径)
+[文件名](相对路径#L起始行-L结束行)
 ```
 
 ### 章节来源格式
 
 ```markdown
 **Section sources**
-- [文件名](file://路径)
+- [文件名](相对路径)
 ```
 
 ### 图表来源格式
 
 ```markdown
 **Diagram sources**
-- [文件名](file://路径)
+- [文件名](相对路径)
 ```
 
 ---

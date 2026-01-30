@@ -40,6 +40,8 @@ export interface AgentCallParams {
   workspaceRoot: string;
   /** 是否为更新操作（而非新建） */
   isUpdate: boolean;
+  /** 日志输出（用于输出到面板） */
+  log?: (message: string, force?: boolean) => void;
 }
 
 /** Agent 调用结果 */
@@ -54,4 +56,6 @@ export interface AgentCallResult {
   error?: string;
   /** 耗时（毫秒） */
   duration: number;
+  /** 是否应该重试（内部使用） */
+  shouldRetry?: boolean;
 }
